@@ -26,13 +26,14 @@
 #include <getopt.h>
 #include <sys/types.h>
 
-#include "stl_util.h"
-#include "stl_io.h"
+#include "extrude.h"
+
 
 #define TRI_ALLOC_SIZE 20000
 // Access 1D array as a 2D array
 #define DATA(r, c) (data[(r)*pxWidth + (c)])
 
+#define DEBUG(X)  X
 
 // Defaults
 stl_mode       output_mode                    = BINARY;
@@ -136,6 +137,122 @@ int copyTemplate(FILE *out, char *filename) {
   }
   fclose(template);
   return triCount;
+}
+
+int whiteSpace(char c) {
+    if(c == ' ' ||
+       c == '\t' ||
+       c == '\n' ||
+       c == '\r') return 1;
+    return 0;
+}
+
+int parsePGM8(FILE *pgm, char *data, int size, int invert) {
+  int ndx, i, j;
+  int nr,nc;
+  int maxGray,bytes;
+  char pgmBuf[15];
+  char magic[2];  //<! PGM magic number buffer 'P5'
+  char c;
+
+
+  // PGM file format:
+  // P5  magic number (2 bytes)
+  // white space (1 byte)
+  // width (ascii)
+  // white space (1 byte)
+  // height (ascii)
+  // whitespace (1 byte)
+  // max gray value (ascii)
+  // whiltespace (1 byte)
+  // data (width * height * size bytes)
+  //   (row-wise width binary unsigned values *
+  //    height rows)
+
+  // read pgm header
+  fread(magic, 1, sizeof(magic),pgm);
+  if(magic[0] != 'P' && magic[1] != '5') return -1;
+
+  fread(&c, 1, sizeof(c),pgm);  // whitespace
+
+  // read width
+  ndx = 0;
+  c = fgetc(pgm);
+  while(!whiteSpace(c) && ndx<(sizeof(pgmBuf)-1)) {
+      pgmBuf[ndx++]=c;
+      c = fgetc(pgm);
+  }
+
+  // check for error
+  if(ndx==sizeof(pgmBuf)-1) return -1;
+  pgmBuf[ndx] = '\0';
+  nc = atoi(pgmBuf);
+
+  // repeat for height
+
+  ndx = 0;
+  c = fgetc(pgm);
+  while(!whiteSpace(c) && ndx<(sizeof(pgmBuf)-1)) {
+      pgmBuf[ndx++]=c;
+      c = fgetc(pgm);
+  }
+
+  // check for error
+  if(ndx==sizeof(pgmBuf)-1) return -1;
+  pgmBuf[ndx] = '\0';
+  nr = atoi(pgmBuf);
+
+  // read the data byte size
+  ndx = 0;
+  c = fgetc(pgm);
+  while(!whiteSpace(c) && ndx<(sizeof(pgmBuf)-1)) {
+      pgmBuf[ndx++]=c;
+      c = fgetc(pgm);
+  }
+
+  // check for error
+  if(ndx==sizeof(pgmBuf)-1) return -1;
+  pgmBuf[ndx] = '\0';
+
+  maxGray = atoi(pgmBuf);
+
+  // calcuate data size in bytes
+  ndx=1;
+  bytes = 1;
+  while(bytes<maxGray) {
+      bytes *= 2;
+      ndx++;
+  }
+  bytes = ndx/8; // convert
+
+  // double check requested size
+  if(size != nc*nr*bytes) return -1;
+
+  fread(data, 1, size, pgm);
+
+  // convert to binary image
+  for(ndx = 0; ndx < size; ndx++) {
+    char val = data[ndx];
+    if(invert) {
+        data[ndx] = (val) ? 0 : 1;
+    } else {
+        data[ndx] = (val) ? 1 : 0;
+    }
+  }
+
+  // need to flip up/down to convert from image to model
+  // coordinate origin. Swap rows from top to bottom.
+    if(1) {
+      for (i=0; i<nr/2; i++) {
+          for (j=0; j<nc; j++) {
+              c = data[i*nr + j];
+              data[i*nr + j] = data[(nr-1-i)*nr + j];
+              data[(nr-1-i)*nr +j] = c;
+          }
+      }
+    }
+
+  return 0;
 }
 
 void parsePNG(FILE *png, char *data, int size, int invert) {
@@ -243,7 +360,9 @@ int simpleExtrude(FILE *out, char *data, int pxWidth, int pxHeight) {
         triCount += 2;
       }
       rowNdx++;
+      DEBUG(printf("%d ",DATA(rowNdx, colNdx)));
     }
+    DEBUG(printf("\n"));
   }
 
   // Check X borders -> generate XZ faces
@@ -362,12 +481,18 @@ int main(int argc, char *argv[]) {
   // Copy in template
   triCount = copyTemplate(out, addTo);
   
-  // Parse (.hmp or .png)
+  // Parse (.hmp, .png, or .pgm)
   data = malloc(sizeof(char) * pxCount);
   if(strstr(source, ".hmp"))
     parseHMP(in, data, pxCount, invert, imgWidth);
-  else
+  else if(strstr(source, ".png"))
     parsePNG(in, data, pxCount, invert);
+  else if(strstr(source, ".pgm"))
+    parsePGM8(in, data,pxCount, 0 /*invert*/);
+  else {
+    printf("Unrecognized data format \n");
+    return 1;
+  }
 
   // Invert if necessary
   if(invert)
