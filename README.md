@@ -4,6 +4,7 @@ Reminants of a senior project from Cal Poly, SLO. These STL utility files were u
 
 extrude - A tool for converting 2D images into 3D objects
 
+```
  Usage: $ extrude [input file (.pgm)] [width(px)] [height(px)] [output (.stl)] [options]
  Options: 
     --binary | --ascii                 STL output in binary or ASCII format
@@ -15,8 +16,11 @@ extrude - A tool for converting 2D images into 3D objects
     --addto [filename]                 Add to existing STL 
     --invert                           Invert black/white on 2D img 
     --flip                             Flip image horizontally
+```
 
  Examples:
-  - generate iPhone 4 case:
+
+  generate iPhone 4 case:
+```
   $ make clean && make extrude && time ./extrude ../cp_xlarge.hmp 2200 3200 testExt.stl --depth 1.5 --width 54.2 --height 78.8 --ascii --addto ../iphonev5.stl
- 
+``` 
