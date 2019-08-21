@@ -1,14 +1,16 @@
-extrude:
-	gcc -Wall extrude.c stl_util.c stl_io.c -o extrude
+all: extrude bench convert move
 
-bench:
-	gcc -Wall bench.c stl_util.c stl_io.c -o bench
+extrude: extrude.c stl_util.c stl_io.c
+	gcc -g -Wall extrude.c stl_util.c stl_io.c -o extrude
 
-convert:
-	gcc -Wall convert.c stl_util.c stl_io.c -o convert
+bench: bench.c stl_util.c stl_io.c
+	gcc -g -Wall bench.c stl_util.c stl_io.c -o bench
 
-move:
-	gcc -Wall move.c stl_util.c stl_io.c -o move
+convert: convert.c stl_util.c stl_io.c
+	gcc -g -Wall convert.c stl_util.c stl_io.c -o convert
+
+move: move.c stl_util.c stl_io.c
+	gcc -g -Wall move.c stl_util.c stl_io.c -o move
 
 clean:
 	rm -f bench extrude convert *.o
