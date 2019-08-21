@@ -33,7 +33,7 @@
 // Access 1D array as a 2D array
 #define DATA(r, c) (data[(r)*pxWidth + (c)])
 
-#define DEBUG(X)  X
+#define DEBUG(X)  /*X*/
 
 // Defaults
 stl_mode       output_mode                    = BINARY;
@@ -334,7 +334,8 @@ void writeXYFace(FILE *out, stl_tri *tris, int startCol, int endCol, int startRo
 int simpleExtrude(FILE *out, char *data, int pxWidth, int pxHeight) {
   int ndx, zCol, zRow, colNdx, rowNdx, startRow, endRow, startCol, endCol;
   int triCount = 0;
-  stl_tri *tempTris = malloc(sizeof(stl_tri) * 2);
+  //stl_tri *tempTris = malloc(sizeof(stl_tri) * 2);
+  stl_tri tempTris[2];
 
   // Check Y borders -> generate YZ faces
   for(colNdx = 0; colNdx < (pxWidth - 1); colNdx++) {
@@ -436,7 +437,7 @@ int simpleExtrude(FILE *out, char *data, int pxWidth, int pxHeight) {
     }
   }
 
-  free(tempTris);
+  //free(tempTris);
   return triCount;
 }
 
@@ -465,8 +466,8 @@ int main(int argc, char *argv[]) {
   // Parse arguments
   parseArgs(argc, argv);
   pxCount = imgWidth * imgHeight;
-  width = (width == 10.0) ? imgWidth : width;
-  height = (height == 10.0) ? imgHeight : height;
+  //width = (width == 10.0) ? imgWidth : width;
+  //height = (height == 10.0) ? imgHeight : height;
   zScale = depth;
   xScale = width / imgWidth;
   yScale = height / imgHeight;
